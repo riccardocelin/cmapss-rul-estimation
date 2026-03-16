@@ -1,208 +1,219 @@
 # CMAPSS Jet Engine Predictive Maintenance
 
-This project predicts **Remaining Useful Life (RUL)** for jet engines using NASA CMAPSS turbofan degradation simulation data.
-
-The repository supports:
-- dataset preprocessing for both **tabular ML** and **sequence DL** workflows,
-- model training with either **Random Forest** or **LSTM**,
-- experiment tracking with **MLflow**,
-- online inference through a **FastAPI** service.
+End-to-end machine learning project for **Remaining Useful Life (RUL)** prediction on NASA CMAPSS turbofan data, including:
+- data preprocessing,
+- model training and experiment tracking,
+- API packaging,
+- and cloud deployment on **Azure Container Apps**.
 
 ---
 
-## Project objective
-Given historical sensor readings from each engine, estimate how many cycles remain before failure.
+## Project goal
 
-The target variable is `RUL`, computed per engine cycle and optionally clipped by `max_rul` during preprocessing.
+The goal is to estimate how many cycles remain before each engine failure (**RUL**) from multivariate sensor and operating-condition time-series.
 
----
-
-## Repository structure
-
-Files 'example_training_ML.ipynb' and 'example_training_TF.ipynb' provides sample notebooks for the training pipeline for the CV-tuned RF model and for the LSTM model with some useful images.
-Those files are only for example purpose only.
-The structure of the project is explained below.
-
-- `src/data_preprocess/dataset_generation.py`  
-  End-to-end dataset preparation (load raw files, compute RUL, feature engineering, save processed artifacts).
-- `src/data_preprocess/data_generation_fcn.py`  
-  Helper functions: loading CMAPSS text files, sorting, RUL generation, missing-value handling, and constant-feature dropping.
-- `src/training.py`  
-  Trains either `random_forest` (tabular) or `lstm` (sequence), evaluates MAE, and logs runs to MLflow.
-- `app/api.py`  
-  FastAPI inference API loading a trained TensorFlow `.keras` model + normalization artifacts.
-- `src/test_api.py`  
-  Client script to test the `/predict` endpoint with batched sequence inputs.
-- `configs/*.template.json`  
-  Templates for preprocessing and training configuration.
+This repository demonstrates a full ML lifecycle:
+1. raw data ingestion and feature preparation,
+2. training with either classical ML (Random Forest) or Deep Learning (LSTM),
+3. experiment tracking with MLflow,
+4. model export for deployment,
+5. online inference through FastAPI,
+6. containerization with Docker,
+7. cloud deployment to Azure Container Apps.
 
 ---
 
-## Data and preprocessing
+## Repository overview
 
-### Expected raw data
-The preprocessing config expects CMAPSS raw files under:
+- `src/data_preprocess/dataset_generation.py`
+  Builds processed train/test datasets from raw CMAPSS files (tabular or sequence format).
+- `src/data_preprocess/data_generation_fcn.py`
+  Utility functions: loading data, RUL generation, missing-data handling, and constant-feature removal.
+- `src/training.py`
+  Trains and evaluates either `random_forest` or `lstm`, then logs metrics/artifacts to MLflow.
+- `app/api.py`
+  FastAPI service that loads a model from `app/model/` and serves predictions.
+- `app/download_model_to_deploy.py`
+  Downloads a model artifact from MLflow Model Registry into `app/model/` for deployment.
+- `app/test_local_or_cloud_service.py`
+  Script to test local or cloud API inference.
+- `configs/*.template.*`
+  Templates for preprocessing, training, model export, and API testing.
+- `example_training_ML.ipynb`, `example_training_TF.ipynb`
+  Demonstration notebooks for RF and LSTM workflows.
+
+---
+
+## Setup
+
+### 1) Create environment and install dependencies
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2) Add raw CMAPSS data
+
+Place files under:
 
 - `data/CMAPSSData/train_FD00x.txt`
 - `data/CMAPSSData/test_FD00x.txt`
 - `data/CMAPSSData/RUL_FD00x.txt`
 
-(These raw data files are not included in this repository and should be added locally.)
+> Raw CMAPSS files are not included in this repository.
 
-### Generate processed datasets
-1. Create a local config from template:
-   - copy `configs/dataset_generation_config.template.json` to `configs/dataset_generation_config.local.json`
-2. Update paths and options in the local config.
+---
+
+## End-to-end usage
+
+### Step A — Generate processed datasets
+
+1. Create local preprocessing config:
+
+```bash
+cp configs/dataset_generation_config.template.json configs/dataset_generation_config.local.json
+```
+
+2. Edit `configs/dataset_generation_config.local.json` based on your paths and preferences (e.g., `is_sequence_modeling`, `sequence_len`, `max_rul`).
+
 3. Run preprocessing:
 
 ```bash
 python src/data_preprocess/dataset_generation.py
 ```
 
-Depending on `is_sequence_modeling`:
-- `false` → tabular CSVs (`*_X_*.csv`, `*_y_*.csv`)
-- `true` → sequence `.npz` files (`*_X_y_*.npz`)
+Output is saved to:
+- `data/processed/tabular/<dataset_version>/...` for tabular mode,
+- `data/processed/sequence/<dataset_version>/...` for sequence mode.
 
-Processed datasets are written under `data/processed/{tabular|sequence}/{dataset_version}`.
+### Step B — Train model and track experiments (MLflow)
 
----
+1. Start MLflow server (port 8080):
 
-## Training
-
-### Configure training
-1. Create a local config from template:
-   - copy `configs/training_config.template.json` to `configs/training_config.local.json`
-2. Set:
-   - `common.algorithm` to `"random_forest"` or `"lstm"`
-   - `common.data_type` to match the algorithm (`tabular` for RF, `sequence` for LSTM)
-   - dataset names and version paths under `common.training` / `common.test`
-
-### Run training
-```bash
-python src/training.py
-```
-
-The training script logs parameters, metrics, dataset metadata, and model artifacts to MLflow.
-
----
-
-## MLflow experiment tracking (port 8080)
-
-Use MLflow on **port 8080**.
-
-### Start local MLflow server
 ```bash
 mlflow server --host 0.0.0.0 --port 8080 --backend-store-uri ./mlruns --artifacts-destination ./mlruns
 ```
 
-### Point training to MLflow
+2. Create local training config:
+
 ```bash
-export MLFLOW_TRACKING_URI=http://127.0.0.1:8080
+cp configs/training_config.template.json configs/training_config.local.json
+```
+
+3. Edit training config:
+- `common.algorithm`: `"random_forest"` or `"lstm"`
+- `common.data_type`: `"tabular"` (RF) or `"sequence"` (LSTM)
+- dataset names under `training` and `test`
+
+4. Run training:
+
+```bash
 python src/training.py
 ```
 
-Open the UI at:
-
+MLflow UI:
 - `http://127.0.0.1:8080`
 
-> Note: `configs/training_config.template.json` already uses `"mlflow_server_uri": "http://127.0.0.1:8080"`.
+### Step C — Export selected model for API deployment
 
----
+1. Create export config:
 
-## Inference API
+```bash
+cp configs/download_model_to_deploy.template.yaml configs/download_model_to_deploy.local.yaml
+```
 
-Start the API server:
+2. Set tracking URI, registered model name, alias (e.g., `champion`), and output directory.
+
+3. Download model artifact for serving:
+
+```bash
+python app/download_model_to_deploy.py
+```
+
+The model is copied to `app/model/`.
+
+### Step D — Run API locally
 
 ```bash
 uvicorn app.api:app --host 0.0.0.0 --port 8000
 ```
 
 Endpoints:
-- `GET /` → health check and loaded model name
-- `POST /predict` → RUL prediction for batches shaped `(batch_size, window_size, n_features)`
+- `GET /` health check
+- `POST /predict` predictions
 
-Quick API test:
+Test API (local or cloud):
 
 ```bash
-python src/test_api.py
+cp configs/service_test_config.template.json configs/service_test_config.local.json
+python app/test_local_or_cloud_service.py
 ```
-
-Local service test script configuration:
-- copy `configs/service_test_config.template.json` to `configs/service_test_config.local.json`
-- update endpoint/data path/model type as needed
-- run `python app/test_local_service.py`
-
-local endpoint (once local server has been started): http://127.0.0.1:8000
-cloud endpoint (azure deployed model): https://ml-api.agreeableground-e95cbc53.northeurope.azurecontainerapps.io
 
 ---
 
 ## Docker
 
-You can also run the API with Docker Compose:
+Build and run with Compose:
 
 ```bash
 docker compose up --build
 ```
 
-API will be available at `http://localhost:8000`.
-
+Local API URL:
+- `http://localhost:8000`
 
 ---
 
-## Azure Container Apps
+## Azure Container Apps deployment (example flow)
 
-For the cloud deployment ACA has been chosen.
-Below, the bash command for the deployment of the champion model in the docker image previously built.
+Below is an example CLI flow used to deploy the containerized API.
 
-resource group creation: rg-ml-app
+```bash
+# 1) Resource group
+az group create --name rg-ml-app --location westeurope
 
-'''bash
-az group create \
-  --name rg-ml-app \
-  --location westeurope
-'''
-
-azure container registry creation: 
-az acr create --name mlopsdemoregistry  --resource-group rg-ml-app --sku Standard
-
-login:
+# 2) Azure Container Registry
+az acr create --name mlopsdemoregistry --resource-group rg-ml-app --sku Standard
 az acr login --name mlopsdemoregistry
 
-tag local image:
+# 3) Tag + push image
 docker tag cmapssjetenginerul-server mlopsdemoregistry.azurecr.io/cmapssrul:latest
-
-push local image
 docker push mlopsdemoregistry.azurecr.io/cmapssrul:latest
 
-creation container app environment (northeurope):
-az containerapp env create \
-  --name env-ml-app \
-  --resource-group rg-ml-app \
-  --location northeurope
+# 4) Container Apps environment
+az containerapp env create --name env-ml-app --resource-group rg-ml-app --location northeurope
 
-enable admin first:
+# 5) Enable ACR admin (simple demo setup)
 az acr update -n mlopsdemoregistry --admin-enabled true
 
-deploy on container app:
+# 6) Deploy Container App
 az containerapp create \
---name ml-api \
---resource-group rg-ml-app \
---environment env-ml-app \
---image mlopsdemoregistry.azurecr.io/cmapssrul:latest \
---registry-server mlopsdemoregistry.azurecr.io \
---registry-username $(az acr credential show --name mlopsdemoregistry --query username -o tsv) \
---registry-password $(az acr credential show --name mlopsdemoregistry --query passwords[0].value -o tsv) \
---target-port 8000 \
---ingress external \
---cpu 1.0 \
---memory 2.0Gi \
---min-replicas 1 \
---max-replicas 3
-
-retrieve public endpoint (https://ml-api.agreeableground-e95cbc53.northeurope.azurecontainerapps.io):
-az containerapp show \
   --name ml-api \
   --resource-group rg-ml-app \
-  --query properties.configuration.ingress.fqdn \
-  --output tsv
+  --environment env-ml-app \
+  --image mlopsdemoregistry.azurecr.io/cmapssrul:latest \
+  --registry-server mlopsdemoregistry.azurecr.io \
+  --registry-username $(az acr credential show --name mlopsdemoregistry --query username -o tsv) \
+  --registry-password $(az acr credential show --name mlopsdemoregistry --query passwords[0].value -o tsv) \
+  --target-port 8000 \
+  --ingress external \
+  --cpu 1.0 \
+  --memory 2.0Gi \
+  --min-replicas 1 \
+  --max-replicas 3
+
+# 7) Retrieve public endpoint
+az containerapp show --name ml-api --resource-group rg-ml-app --query properties.configuration.ingress.fqdn --output tsv
+```
+
+> Current example endpoint from this project:
+> `https://ml-api.agreeableground-e95cbc53.northeurope.azurecontainerapps.io`
+
+---
+
+## Notes
+
+- This project is intentionally structured as a practical portfolio demo of the complete ML lifecycle.
+- Local `.local.json` / `.local.yaml` config files are expected and should not be committed with secrets.
