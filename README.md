@@ -155,14 +155,18 @@ python app/test_local_or_cloud_service.py
 
 ## Docker
 
-Build and run with Compose:
+Build image & run:
 
 ```bash
-docker compose up --build
+docker build -t rul-engine
+```
+
+```bash
+docker run -p 8000:8000 rul-engine
 ```
 
 Local API URL:
-- `http://localhost:8000`
+- `http://127.0.0.1:8000`
 
 ---
 
