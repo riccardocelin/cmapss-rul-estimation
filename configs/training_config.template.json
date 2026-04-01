@@ -15,7 +15,8 @@
     },
     "mlflow_server_uri": "http://127.0.0.1:8080",
     "mlflow_experiment_name": "CMAPSS Jet Engine simulation",
-    "mlflow_run_name": "random forest 5fold CV",
+    "mlflow_run_name": "lstm with early stopping",
+    "mlflow_registry_model_name": "LSTM",
     "algorithm": "lstm",
     "random_state": 42
   },

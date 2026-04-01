@@ -4,7 +4,62 @@ End-to-end machine learning project for **Remaining Useful Life (RUL)** predicti
 - data preprocessing,
 - model training and experiment tracking,
 - API packaging,
-- and cloud deployment on **Azure Container Apps**.
+- push on GHCR
+- kubernetes deployment (local minikube)
+
+                ┌──────────────────────────┐
+                │        TRAINING          │
+                │  (experiments, tuning)   │
+                └──────────┬───────────────┘
+                           │
+                           ▼
+                ┌──────────────────────────┐
+                │     MLFLOW TRACKING      │
+                │  (metrics, params, runs) │
+                └──────────┬───────────────┘
+                           │
+                           ▼
+                ┌──────────────────────────┐
+                │   MODEL REGISTRY         │
+                │ (versioned models v1,v2) │
+                └──────────┬───────────────┘
+                           │
+                           │  (after evaluation / validation)
+                           ▼
+        ┌────────────────────────────────────────────┐
+        │   EXPORT SELECTED MODEL (model-vX)         │
+        │   → prj_fld/app/model                      │
+        └──────────────────────────┬─────────────────┘
+                                   │
+                                   ▼
+        ┌────────────────────────────────────────────┐
+        │        DOCKER BUILD                        │
+        │  (API code + exported model bundled)      │
+        └──────────────────────────┬─────────────────┘
+                                   │
+                                   ▼
+        ┌────────────────────────────────────────────┐
+        │   DOCKER IMAGE                             │
+        │   (versioned, reproducible artifact)       │
+        └──────────────────────────┬─────────────────┘
+                                   │
+                                   ▼
+        ┌────────────────────────────────────────────┐
+        │   GITHUB CONTAINER REGISTRY (GHCR)         │
+        │   (image storage & distribution)           │
+        └──────────────────────────┬─────────────────┘
+                                   │
+                                   ▼
+        ┌────────────────────────────────────────────┐
+        │   KUBERNETES DEPLOYMENT                    │
+        │   (Minikube: LoadBalancer + tunneling)     │
+        └──────────────────────────┬─────────────────┘
+                                   │
+                                   ▼
+        ┌────────────────────────────────────────────┐
+        │   RUNNING API                              │
+        │   (inference server)                       │
+        └────────────────────────────────────────────┘
 
 ---
 
@@ -155,18 +210,22 @@ python app/test_local_or_cloud_service.py
 
 ## Docker
 
-Build image & run:
+Build image & push on GitHub Container Registry:
 
+1. Build image:
 ```bash
-docker build -t rul-engine
+docker build -t ghcr.io/riccardocelin/cmapss-rul-engine:1.0.1-RFv1 . # docker build -t ghcr.io/<github-owner>/<package-name>:<imageversion>-<model><modelversion> .
 ```
 
+2. Push image in GHCR:
 ```bash
-docker run -p 8000:8000 rul-engine
+docker push ghcr.io/riccardocelin/cmapss-rul-engine:1.0.1-RFv1 # docker push ghcr.io/<github-owner>/<package-name>:<imageversion>-<model><modelversion>
 ```
 
-Local API URL:
-- `http://127.0.0.1:8000`
+3. (Opional) local docker container run (api url: http://127.0.0.1:8000)
+```bash
+docker run -p 8000:8000 riccardocelin/cmapss-rul-engine:RF-v1 # running the container, exposing port 8000
+```
 
 ---
 
@@ -175,8 +234,8 @@ Local API URL:
 Minikube workflow for local deployment:
 ```bash
 minikube start -p <cluster-name>
-kubectl apply -f k8s/   # Apply all Kubernetes manifests in the folder prj_fld/k8s (deployment.yaml, service.yaml, eventual configmap.yaml) - will be applied to active context
-minikube tunnel # enable tunneling for local host
+kubectl apply -f k8s/   # (only the first time) Apply all Kubernetes manifests in the folder prj_fld/k8s (deployment.yaml, service.yaml, eventual configmap.yaml) - will be applied to active context
+minikube tunnel # enable tunneling (without cloud provider, k8s cannot create a real LoadBalancer: simulated with tunneling in orther to obtain an external IP:port)
 kubectl get svc # useful to get the ip:port after the tunneling (//127.0.0.1:80)
 python app/test_..._service.py # test model deployed in kubernetes
 ```

@@ -1,0 +1,8 @@
+model:
+  datetime_file_edit: '2026-04-01T17:09:14.167493'
+  registry_name: RF
+  version: '1'
+previous:
+  datetime_file_edit: '2026-04-01T17:06:10.892264'
+  registry_name: RF
+  version: test

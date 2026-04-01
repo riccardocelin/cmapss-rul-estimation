@@ -180,7 +180,7 @@ def train_random_forest(cfg, cfg_rf):
         mlflow.log_artifact(source_tst_X, artifact_path="datasets")
         mlflow.log_artifact(source_trn_y, artifact_path="datasets")
         mlflow.log_artifact(source_tst_y, artifact_path="datasets")
-        mlflow.sklearn.log_model(grid_search.best_estimator_, artifact_path="model", registered_model_name="RF_RUL_estimator")
+        mlflow.sklearn.log_model(grid_search.best_estimator_, artifact_path="model", registered_model_name=cfg["mlflow_registry_model_name"])
 
 
 def train_lstm(cfg, cfg_lstm):
@@ -274,7 +274,7 @@ def train_lstm(cfg, cfg_lstm):
         mlflow.log_artifact(source_trn, artifact_path="datasets")
         mlflow.log_artifact(source_tst, artifact_path="datasets")
         mlflow.log_param("epochs_trained", len(history.history.get("loss", [])))
-        mlflow.tensorflow.log_model(model, artifact_path="model", registered_model_name="LSTM_RUL_estimator")
+        mlflow.tensorflow.log_model(model, artifact_path="model", registered_model_name=cfg["mlflow_registry_model_name"])
 
 
 def main():

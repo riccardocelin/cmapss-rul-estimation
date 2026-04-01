@@ -1,3 +1,6 @@
+# script to test the deployed RUL inference service by sending requests with test data and printing the predictions and model info.
+# works both locally (local container or kubernetes/minikube) and on cloud (e.g., when deployed on AWS/GCP/Azure) by updating the 'base_url' in the config file.
+
 import os
 import json
 import requests
@@ -111,7 +114,10 @@ def main():
 
     while True:
         response = predict(url, X)
-        print(f"Predicted RUL: {response['predictions']}")
+        model_info = requests.get(base_url + '/model_info').json()
+        print(f"Predicted RUL:  {response['predictions']}\n")
+        print(f"Model name:     {model_info['model_name']}\n")
+        print(f"Model version:  {model_info['model_version']}\n")
 
         if not loop_mod:
             break

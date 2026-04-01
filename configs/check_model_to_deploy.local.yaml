@@ -2,7 +2,7 @@ mlflow:
   tracking_uri: http://127.0.0.1:8080
 
 model:
-  name: RF_RUL_estimator
+  registry_name: RF
   alias: champion
 
 export:
