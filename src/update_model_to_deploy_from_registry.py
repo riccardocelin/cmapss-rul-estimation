@@ -43,7 +43,7 @@ def main():
 
         # delete the old model file in the output directory before copying the new one
         shutil.rmtree(output_dir, ignore_errors=True)
-        
+
         shutil.copytree(model_artifact, output_dir, dirs_exist_ok=True)
 
         # manual add of 'uvicorn' requirements when copying from mlflow artifacts
@@ -53,7 +53,7 @@ def main():
             f.write('fastapi\n')
 
         print("Model file copied successfully. Auto Git commit and push the changes...")
-        #git_commit_and_push()
+        git_commit_and_push()
         print("Auto Git commit and push completed (if configured, CI/CD pipeline will be triggered to build and deploy the updated model).")
 
     else:
@@ -113,7 +113,7 @@ def git_commit_and_push():
     """
 
     os.system('git add .')
-    os.system('git commit -m "Automatic commit: Update model file for deployment"')
+    os.system('git commit -m "Automatic commit: Update model files for deployment"')
     os.system('git push')
 
 if __name__ == "__main__":
