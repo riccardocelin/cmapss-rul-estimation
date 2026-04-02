@@ -113,7 +113,7 @@ def git_commit_and_push():
     """
 
     os.system('git add .')
-    os.system('git commit -m "Automatic commit: Update model files for deployment"')
+    os.system('git commit -m "automatic commit: update model files for deployment"')
     os.system('git push')
 
 if __name__ == "__main__":

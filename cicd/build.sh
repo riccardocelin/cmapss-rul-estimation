@@ -5,11 +5,16 @@
 set -e  # interrupt the script if any command fails
 
 IMAGE_NAME="ghcr.io/riccardocelin/cmapss-rul-engine" # has to be consistent with the image name in k8s/deployment.yaml
-TAG="1.0.3-RFv1" # ???? has to be automatically retrieved from model artifact and previous image (HOW?????)
+
+GIT_SHA=$(git rev-parse --short HEAD)
+
+MODEL_NAME_VERSION=$(python ./cicd/get_model_info_for_cicd.py)
+
+TAG="${GIT_SHA}-$MODEL_NAME_VERSION"
 
 echo ">> CI: Building Docker image..."
 
 docker build -t $IMAGE_NAME:$TAG .
 docker push $IMAGE_NAME:$TAG
 
-echo "<< CI: Image built and pushed on GHCR successfully: $IMAGE_NAME:$TAG"
+echo "<< CI: Image $IMAGE_NAME built and pushed on GHCR successfully with the following tag: $IMAGE_NAME:$TAG"
