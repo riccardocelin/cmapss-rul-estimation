@@ -55,7 +55,7 @@ def main():
             f.write('fastapi\n')
 
         print("Auto Git commit and push the changes. This will trigger the CI/CD pipeline to build and deploy the updated model (if configured).")
-        #git_commit_and_push()
+        git_commit_and_push()
         print("Auto Git commit and push completed.")
 
     else:
