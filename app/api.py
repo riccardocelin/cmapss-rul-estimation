@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from pathlib import Path
 from typing import List, Any
 import yaml
+import os
 import mlflow.pyfunc
 
 # NOTE: loading a model exported from mlflow local server to app/model is a workaround to avoid using local mlflow uri due to the fact that this demo project aim to deploy the model on cloud, in this case the choice of downloading the model in app/models is a tradeoff choice in order to maintain simplicity for the deployment while using mlflow model registry tool in localhost (local training)
@@ -10,15 +11,21 @@ import mlflow.pyfunc
 # Load the model version currently under the 'champion' alias
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = str(BASE_DIR / "model")
+MODEL_FILE_YAML = MODEL_PATH + "/registered_model_meta"  # this is the model file that will be used for deployment, it will be updated if the model in MLflow registry is updated
 
 model = mlflow.pyfunc.load_model(MODEL_PATH)
 
-# get the model metadata from model/registered_model_meta file
-with open(MODEL_PATH + "/registered_model_meta", "r") as f:
-    data = yaml.safe_load(f)
+model_file_content = None
+model_name = "NaN"
+model_version = "NaN"
+if os.path.exists(MODEL_FILE_YAML):
+    # read yaml file in model_file_yaml to get the actual model name and version
+    with open(MODEL_FILE_YAML, "r") as f:
+        model_file_content = yaml.safe_load(f)
 
-model_name = data["model_name"]
-model_version = data["model_version"]
+    model_name = str(model_file_content["model_name"])
+    model_version = str(model_file_content["model_version"])
+
 
 app = FastAPI()
 
