@@ -30,6 +30,7 @@ app = FastAPI()
 
 model = None
 model_ready = False
+shutting_down = False
 
 class DataInstance(BaseModel):
     inputs: List[Any]
@@ -37,8 +38,18 @@ class DataInstance(BaseModel):
 @app.on_event("startup")
 def load_model_on_startup():
     global model, model_ready
-    model = mlflow.pyfunc.load_model(MODEL_PATH)
-    model_ready = True
+    try:
+        model = mlflow.pyfunc.load_model(MODEL_PATH)
+        model_ready = True
+    except Exception as e:
+        model_ready = False
+        print(f"Model loading failed: {e}")
+
+@app.on_event("shutdown")
+def shutdown_event():
+    global shutting_down
+    shutting_down = True
+    print("Shutting down the service...")
 
 @app.get("/")
 def read_root():
@@ -50,8 +61,8 @@ def liveness():
 
 @app.get("/health/ready")
 def readiness():
-    if not model_ready:
-        raise HTTPException(status_code=503, detail="Model not ready")
+    if not model_ready or shutting_down:
+        raise HTTPException(status_code=503, detail="Model is not ready or service is shutting down")
     return {"status": "ready"}
 
 @app.get("/model_info")
@@ -63,6 +74,10 @@ def model_info():
 
 @app.post("/predict")
 def predict(input_data: DataInstance):
+
+    if shutting_down or not model_ready:
+        raise HTTPException(status_code=503, detail="Prediction service is shutting down or model is not ready")
+    
     x = input_data.inputs
     preds = model.predict(x)
     return {"predictions": preds.tolist()}

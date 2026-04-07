@@ -4,6 +4,7 @@
 import os
 import json
 import requests
+import time
 import numpy as np
 import pandas as pd
 
@@ -112,18 +113,22 @@ def main():
     test_response = requests.get(base_url + '/')
     print(f"Test response: {test_response}")
 
+    c = 1
     while True:
         try:
+            print(f"\nRequest #{c} to {url}")
             response = predict(url, X)
             print(f"Predicted RUL:  {response['predictions']}\n")
             model_info = requests.get(base_url + '/model_info').json()
             print(f"Model name:     {model_info['model_name']}\n")
             print(f"Model version:  {model_info['model_version']}\n")
-            os.pause(1)
+            time.sleep(1)
 
         except Exception:
             print(f"Error occurred while sending request to {url}")
             continue
+
+        c += 1
 
 
 if __name__ == "__main__":

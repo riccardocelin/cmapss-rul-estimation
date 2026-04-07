@@ -27,7 +27,7 @@ spec:
 
       containers:
         - name: rul-inference-container # Container name inside Pod (used for debug/logging)
-          image: ghcr.io/riccardocelin/cmapss-rul-engine:1efbb39-RFv2 # Local Docker image (must be loaded into Minikube)
+          image: ghcr.io/riccardocelin/cmapss-rul-engine:9621107-RFv1 # Local Docker image (must be loaded into Minikube)
           imagePullPolicy: IfNotPresent
 
           ports:
@@ -35,14 +35,14 @@ spec:
 
           startupProbe: # Checks if the container has started successfully -> total possible time for startup = failureThreshold * periodSeconds(used by Kubernetes to determine if the container is still starting up or has failed to start, especially important for ML models that might take time to load)
             httpGet:
-              path: /ready
+              path: /health/ready
               port: 8000
-            failureThreshold: 30 # If 30 consecutive checks fail -> mark the container as failed (this is a common setting for ML models that might take time to start, but can be tuned based on the expected startup time and stability of the application)
+            failureThreshold: 10 # If 30 consecutive checks fail -> mark the container as failed (this is a common setting for ML models that might take time to start, but can be tuned based on the expected startup time and stability of the application)
             periodSeconds: 5 # Check every 5 seconds (this is a common setting, but can be tuned based on the expected startup time and stability of the application)
 
           readinessProbe: # Checks if the container is ready to receive traffic (used by Service to route traffic only to ready Pods)
             httpGet:
-              path: /ready # Health endpoint defined in FastAPI (app/api.py)
+              path: /health/ready # Health endpoint defined in FastAPI (app/api.py)
               port: 8000 # Port exposed by the container
             initialDelaySeconds: 5 # Wait a few seconds before starting readiness checks to allow the application to start
             periodSeconds: 5 # Check every 5 seconds
@@ -50,7 +50,7 @@ spec:
 
           livenessProbe: # Checks if the container is alive (if fails -> restart the container, used by Kubernetes to ensure the application is running)
             httpGet:
-              path: /live
+              path: /health/live
               port: 8000
             initialDelaySeconds: 10 # Wait longer before starting liveness checks to allow the application to fully start (especially important for ML models that might take time to load)
             periodSeconds: 10 # Check every 10 seconds
