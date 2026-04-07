@@ -113,8 +113,9 @@ def main():
     test_response = requests.get(base_url + '/')
     print(f"Test response: {test_response}")
 
-    c = 1
+    c = 0
     while True:
+        c += 1
         try:
             print(f"\nRequest #{c} to {url}")
             response = predict(url, X)
@@ -127,9 +128,6 @@ def main():
         except Exception:
             print(f"Error occurred while sending request to {url}")
             continue
-
-        c += 1
-
 
 if __name__ == "__main__":
     main()
