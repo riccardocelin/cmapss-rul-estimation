@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi import HTTPException
 from pydantic import BaseModel
 from pathlib import Path
 from typing import List, Any
@@ -12,8 +13,6 @@ import mlflow.pyfunc
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = str(BASE_DIR / "model")
 MODEL_FILE_YAML = MODEL_PATH + "/registered_model_meta"  # this is the model file that will be used for deployment, it will be updated if the model in MLflow registry is updated
-
-model = mlflow.pyfunc.load_model(MODEL_PATH)
 
 model_file_content = None
 model_name = "NaN"
@@ -29,13 +28,31 @@ if os.path.exists(MODEL_FILE_YAML):
 
 app = FastAPI()
 
+model = None
+model_ready = False
+
 class DataInstance(BaseModel):
     inputs: List[Any]
 
+@app.lifespan("startup")
+def load_model_on_startup():
+    global model, model_ready
+    model = mlflow.pyfunc.load_model(MODEL_PATH)
+    model_ready = True
+
 @app.get("/")
-@app.get("/health")
 def read_root():
     return{"health_status": "ok"}
+
+@app.get("/health/live")
+def liveness():
+    return {"status": "alive"}
+
+@app.get("/health/ready")
+def readiness():
+    if not model_ready:
+        raise HTTPException(status_code=503, detail="Model not ready")
+    return {"status": "ready"}
 
 @app.get("/model_info")
 def model_info():
