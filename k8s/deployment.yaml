@@ -7,6 +7,12 @@ metadata:
 spec:
   replicas: 2  # Desired state for Pod replicas
 
+  strategy:
+    type: RollingUpdate # Update strategy that ensures zero downtime during updates (if SIGTERM is not handled properly in the application, this can lead to downtime during updates, but with proper handling it allows for seamless updates)
+    rollingUpdate:
+      maxSurge: 1 # Maximum number of Pods that can be created above the desired number of replicas during an update (allows for a smooth rollout by creating new Pods before deleting old ones)
+      maxUnavailable: 0 # Maximum number of Pods that can be unavailable during an update (setting to 0 ensures that all existing Pods remain available until the new ones are ready)
+
   selector:
     matchLabels:
       app: rul-api  # Must match the labels in the Pod template ( = template.metadata.labels)
@@ -17,13 +23,31 @@ spec:
         app: rul-api  # Label assigned to Pods (used by Deployment and Service to find them)
 
     spec: # Specifies the containers inside the Pod (one pod can have multiple containers)
+      terminationGracePeriodSeconds: 30 # Time given to Pods to gracefully shut down before being forcefully terminated (important for ML models to release resources properly)
+
       containers:
         - name: rul-inference-container # Container name inside Pod (used for debug/logging)
-          image: ghcr.io/riccardocelin/cmapss-rul-engine:1efbb39-rfv2  # Local Docker image (must be loaded into Minikube)
+          image: ghcr.io/riccardocelin/cmapss-rul-engine:1efbb39-RFv2 # Local Docker image (must be loaded into Minikube)
           imagePullPolicy: IfNotPresent
 
           ports:
             - containerPort: 8000  # Port exposed by the container (only for reference, the real routing is done in service.yaml)
+
+          readinessProbe: # Checks if the container is ready to receive traffic (used by Service to route traffic only to ready Pods)
+            httpGet:
+              path: /health # Health endpoint defined in FastAPI (app/api.py)
+              port: 8000 # Port exposed by the container
+            initialDelaySeconds: 20 # Wait a few seconds before starting readiness checks to allow the application to start
+            periodSeconds: 10 # Check every 10 seconds
+            failureThreshold: 3 # If 3 consecutive checks fail -> mark the container as not ready (this is a common setting, but can be tuned based on the expected startup time and stability of the application)
+
+          livenessProbe: # Checks if the container is alive (if fails -> restart the container, used by Kubernetes to ensure the application is running)
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15 # Wait longer before starting liveness checks to allow the application to fully start (especially important for ML models that might take time to load)
+            periodSeconds: 5 # Check every 5 seconds
+            failureThreshold: 3 # If 3 consecutive checks fail -> restart the container (this is a common setting, but can be tuned based on the expected startup time and stability of the application)
 
           # Resource limits are optional in local setups but good practice also in local minikube
           resources:

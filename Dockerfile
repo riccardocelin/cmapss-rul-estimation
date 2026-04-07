@@ -6,8 +6,9 @@ FROM python:3.11.14-slim
 
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# install requirements from app
+COPY app/requirements_app.txt .
+RUN pip install --no-cache-dir -r requirements_app.txt
 
 # install requirements from mlflow artifacts
 COPY app/model/requirements.txt .

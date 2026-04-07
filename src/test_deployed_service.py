@@ -34,7 +34,7 @@ sequence_model = _SERVICE_TEST_CONFIG["sequence_model"]  # Sequence model: True 
 loop_mod = _SERVICE_TEST_CONFIG["loop"] 
 
 
-def predict(url="http://127.0.0.1:8000/predict", data=None, verbose=True, timeout=50):
+def predict(url="http://127.0.0.1:8000/predict", data=None, verbose=True, timeout=5):
     """
     Make a POST request to get the prediction from the RUL model served via FastAPI.
 
@@ -113,14 +113,18 @@ def main():
     print(f"Test response: {test_response}")
 
     while True:
-        response = predict(url, X)
-        model_info = requests.get(base_url + '/model_info').json()
-        print(f"Predicted RUL:  {response['predictions']}\n")
-        print(f"Model name:     {model_info['model_name']}\n")
-        print(f"Model version:  {model_info['model_version']}\n")
+        try:
+            response = predict(url, X)
+            print(f"Predicted RUL:  {response['predictions']}\n")
+            model_info = requests.get(base_url + '/model_info').json()
+            print(f"Model name:     {model_info['model_name']}\n")
+            print(f"Model version:  {model_info['model_version']}\n")
+            os.pause(1)
 
-        if not loop_mod:
-            break
+        except Exception:
+            print(f"Error occurred while sending request to {url}")
+            continue
+
 
 if __name__ == "__main__":
     main()

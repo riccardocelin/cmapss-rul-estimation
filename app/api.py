@@ -33,6 +33,7 @@ class DataInstance(BaseModel):
     inputs: List[Any]
 
 @app.get("/")
+@app.get("/health")
 def read_root():
     return{"health_status": "ok"}
 

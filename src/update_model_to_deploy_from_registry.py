@@ -47,14 +47,8 @@ def main():
         shutil.copytree(model_artifact, output_dir, dirs_exist_ok=True)
         print(f"New model artifact downloaded from MLflow registry and copied to the output directory {output_dir} successfully.")
 
-        # manual add of 'uvicorn' requirements when copying from mlflow artifacts
-        with open(output_dir+'/requirements.txt', 'a') as f:
-            f.write('\n')
-            f.write('uvicorn\n')
-            f.write('fastapi\n')
-
         print("Auto Git commit and push the changes. This will trigger the CI/CD pipeline to build and deploy the updated model (if configured).")
-        git_commit_and_push()
+        #git_commit_and_push()
         print("Auto Git commit and push completed.")
 
     else:
