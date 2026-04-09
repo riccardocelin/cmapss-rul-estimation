@@ -97,6 +97,9 @@ This repository demonstrates a full ML lifecycle:
 - `example_training_ML.ipynb`, `example_training_TF.ipynb`
   Demonstration notebooks for RF and LSTM workflows.
 
+Important note/limitations:
+the deployed model is also gitted in prj repo in app/model, this is for sure not a best practice but it is a workaround for this demo project in order to have the model exported from the local registry (mlflow in localhost) and visible by github actions for CICD purposes. In real production, the mlflow databases would be remote and the CICD pipelines would fetch the model runtime.
+
 ---
 
 ## Setup
@@ -259,7 +262,14 @@ kubectl logs <pod-name>
 
 3. Debug:
 ```bash
-kubectl describe pod <pod-name> (example: kubectl describe pod cmapss-rul-api-764b6986-5mt5k)
+kubectl describe pod <pod-name> # (example: kubectl describe pod cmapss-rul-api-764b6986-5mt5k)
+kubectl rollout status deployment <your-api> # check if rolling update/rollback was succesfully
+```
+
+4. Rollback (after deployment update):
+```bash
+kubectl rollout undo deployment <your-api> # <your-api> is the name of the deployment (field metadata.name in deployment.yaml)
+kubectl rollout history deployment <your-api> # k8s read the replicaset and provides history
 ```
 
 Conceptual notes:
@@ -374,7 +384,7 @@ Client → public and stable IP address
 
 ---
 
-## Azure Container Apps deployment (example flow)
+## Azure Container Apps deployment (example flow - not used, now K8s deployment)
 
 Below is an example CLI flow used to deploy the containerized API.
 

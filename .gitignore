@@ -213,6 +213,5 @@ data
 dataset_generation_config.local.json
 training_config.local.json
 mlruns
-app/model/model.pkl
 download_model_to_deploy.local.yaml
 service_test_config.local.json
