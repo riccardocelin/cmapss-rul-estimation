@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# CI script: This script builds the Docker image for the RUL inference service. It should be run from the root of the project.
+# This script builds the Docker image for the RUL inference service. It should be run from the root of the project.
 
 set -e  # interrupt the script if any command fails
 
@@ -12,9 +12,6 @@ MODEL_NAME_VERSION=$(python ./cicd/get_model_info_for_cicd.py)
 
 TAG="${GIT_SHA}-$MODEL_NAME_VERSION"
 
-echo ">> CI: Building Docker image..."
-
 docker build -t $IMAGE_NAME:$TAG .
-docker push $IMAGE_NAME:$TAG
 
-echo "<< CI: Image $IMAGE_NAME built and pushed on GHCR successfully with the following tag: $IMAGE_NAME:$TAG"
+echo $IMAGE_NAME:$TAG
