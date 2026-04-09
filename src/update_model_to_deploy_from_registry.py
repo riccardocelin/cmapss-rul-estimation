@@ -103,11 +103,22 @@ def git_commit_and_push(folder_to_git="./app/model"):
         if result.returncode != 0:
             raise RuntimeError(f"Command failed: {cmd}\n{result.stderr}")
         return result.stdout
+    
+    folder = Path(folder_to_git)
+    
+    # find repo root
+    repo_root = Path(
+        subprocess.check_output("git rev-parse --show-toplevel", shell=True)
+        .decode()
+        .strip()
+    )
+    
+    relative_path = folder.relative_to(repo_root)
 
-    run_cmd(f'git add {folder_to_git}')
+    run_cmd(f'git add -A "{relative_path}"')
     
     try:
-        run_cmd('git commit -m "automatic model commit: update model files for CI"')
+        run_cmd('git commit -m "automatic model commit: updated model files from MLflow registry"')
     except RuntimeError as e:
         if "nothing to commit" in str(e):
             print("No changes to commit")
