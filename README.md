@@ -4,8 +4,8 @@ End-to-end machine learning project for **Remaining Useful Life (RUL)** predicti
 - data preprocessing,
 - model training and experiment tracking,
 - API packaging,
-- push on GHCR
-- kubernetes deployment (local minikube)
+- push on GHCR (with automatic CI workflow via Github Actions)
+- kubernetes deployment (local minikube, manual deployment: CD fiesible with minikube set up)
 
                 ┌──────────────────────────┐
                 │        TRAINING          │
@@ -34,7 +34,7 @@ End-to-end machine learning project for **Remaining Useful Life (RUL)** predicti
                                    ▼
         ┌────────────────────────────────────────────┐
         │        DOCKER BUILD                        │
-        │  (API code + exported model bundled)      │
+        │  (API code + exported model bundled)       |
         └──────────────────────────┬─────────────────┘
                                    │
                                    ▼
@@ -98,7 +98,14 @@ This repository demonstrates a full ML lifecycle:
   Demonstration notebooks for RF and LSTM workflows.
 
 Important note/limitations:
-the deployed model is also gitted in prj repo in app/model, this is for sure not a best practice but it is a workaround for this demo project in order to have the model exported from the local registry (mlflow in localhost) and visible by github actions for CICD purposes. In real production, the mlflow databases would be remote and the CICD pipelines would fetch the model runtime.
+the deployed model is also gitted in prj repo in app/model, this is for sure not a best practice but it is a workaround for this demo project in order to have the model exported from the local registry (mlflow in localhost) and visible by github actions for CI purposes. In real production, the mlflow databases would be remote and the CI pipelines would fetch the model runtime.
+Another critical limitation is due to the fact that for this demo project minikube local Kubernetes cluster is used, which cannot be accessed from GitHub Actions. In a production scenario with a cloud-based Kubernetes cluster, the deployment step can be fully automated in the CI/CD pipeline, but in this project the local deployment on K8s require a manual step (for security reasons, a self-hosted runner on github has not been configured)
+
+Notes on deployment workflow:
+- model update with ./src/update_model_to_deploy_from_registry.py: this script will update (automatic commit + push) of the latest @champion model on mlflow (config on ./config/check_model_to_deploy.local.yaml)
+- PR/push on barnch main will trigger a CI workflow for the automatic build + push on GHCR of the docker image with the model and API.
+- After CI workflow, a new image is available on the registry and has to be manually pulled by applying the ./k8s/deployment.yaml manifest. K8s mainifest is versioned on git, and it is configured for pulling the :latest tag image from the registry: in reality, it is suggested to manually change the image tag and explicitly refer to the tag found in GHCR in ordert to correctly manage the k8s features such as rollback or rolling update. These changes should not be tracked (this is a limitation of a standard CD workflow due to the use of minikube for demo purposes).
+
 
 ---
 

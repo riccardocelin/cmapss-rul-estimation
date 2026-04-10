@@ -51,7 +51,7 @@ def main():
         print(f"New model artifact downloaded from MLflow registry and copied to the output directory {output_dir} successfully.")
 
         print("Auto Git commit and push the changes.")
-        git_commit_and_push(MODEL_FLDR)
+        git_commit_and_push(MODEL_FLDR, champion_model)
         print("Auto Git commit and push completed.")
 
     else:
@@ -92,7 +92,7 @@ def check_and_update_model_file(model_file_yaml, champion_model):
         return False
 
 
-def git_commit_and_push(folder_to_git="./app/model"):
+def git_commit_and_push(folder_to_git="./app/model", champion_model=None):
     """
     Auto commit and push the changes to Git. This will trigger the CI/CD pipeline to build and deploy the updated model.
     Note: this function assumes that Git is configured and the user has the necessary permissions to push to the repository.
@@ -117,8 +117,13 @@ def git_commit_and_push(folder_to_git="./app/model"):
 
     run_cmd(f'git add -A "{relative_path}"')
     
+    if champion_model is not None:
+        commit_message = f"Update deployed model to {champion_model['registry_name']} version {champion_model['version']}"
+    else:
+        commit_message = "Update deployed model to the latest champion model in MLflow registry"
+    
     try:
-        run_cmd('git commit -m "automatic model commit: updated model files from MLflow registry"')
+        run_cmd(f'git commit -m "{commit_message}"')
     except RuntimeError as e:
         if "nothing to commit" in str(e):
             print("No changes to commit")

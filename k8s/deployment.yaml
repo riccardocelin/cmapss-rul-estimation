@@ -27,7 +27,7 @@ spec:
 
       containers:
         - name: rul-inference-container # Container name inside Pod (used for debug/logging)
-          image: ghcr.io/riccardocelin/cmapss-rul-engine:9621107-RFv1 # Local Docker image (must be loaded into Minikube)
+          image: ghcr.io/riccardocelin/cmapss-rul-engine:latest # Local Docker image (must be loaded into Minikube)
           imagePullPolicy: IfNotPresent
 
           ports:

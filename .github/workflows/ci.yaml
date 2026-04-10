@@ -28,6 +28,7 @@ jobs:
           ./cicd/build.sh
 
   build-and-push:
+    needs: build
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
@@ -43,5 +44,5 @@ jobs:
 
       - name: Build and Push image
         run: |
-          chmod +x ./cicd/build_and_push.sh
-          ./cicd/build_and_push.sh
+          chmod +x ./cicd/push.sh
+          ./cicd/push.sh
