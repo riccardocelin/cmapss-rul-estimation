@@ -50,6 +50,8 @@ This project demonstrates an end-to-end MLOps flow:
   Builds the API image (FastAPI + model artifact).
 - `k8s/deployment.yaml`, `k8s/service.yaml`  
   Kubernetes deployment/service manifests.
+- `.github/workflows/ci.yaml`
+  GitHub Actions workflow that runs on `pull_request` and `push` to `main` (for `app/**` changes).
 - `cicd/build.sh`, `cicd/push.sh`, `cicd/deploy.sh`  
   Helper scripts for image build/push and Kubernetes deployment.
 - `cicd/get_model_info_for_cicd.py`  
@@ -70,7 +72,9 @@ This project demonstrates an end-to-end MLOps flow:
 ## Important limitations (intentional for demo scope)
 
 - The deployed model artifact is versioned in-repo under `app/model/`. This is convenient for this demo but is **not** ideal for production.
+- CI is visible in GitHub Actions, but CD is intentionally **not fully visible/automated** in GitHub Actions for this demo.
 - Kubernetes CD is manual in this project because the target cluster is local Minikube (not reachable from GitHub-hosted runners).
+- Deployment is performed manually by updating `k8s/deployment.yaml` with the real image tag published in GHCR (replace `latest` with the target tag), then applying the manifest with `kubectl apply -f k8s/deployment.yaml`.
 - In production, MLflow services and artifact storage should be remote/shared, and deployment should run in a fully automated CD pipeline.
 
 ---
@@ -96,8 +100,6 @@ Place data files in:
 > Raw CMAPSS files are not committed in this repository.
 
 ---
-
-## End-to-end workflow
 
 ## 1) Generate processed datasets
 
@@ -226,6 +228,33 @@ bash cicd/push.sh
 ```
 
 Both scripts derive image tags from `<git-sha>-<model_name>v<model_version>`.
+
+### GitHub Actions CI behavior
+
+- The workflow is defined in `.github/workflows/ci.yaml`.
+- CI is triggered on:
+  - `pull_request` targeting branch `main`
+  - `push` to branch `main`
+- The workflow currently filters on `app/**` path changes.
+- On `push` to `main`, the image push step runs (GHCR push).
+
+### CD note (demo limitation)
+
+This repository uses a **local Minikube cluster** for deployment demos. Because that cluster is local, GitHub-hosted runners cannot access it; therefore CD is manual by design in this project.
+
+Manual deployment flow:
+1. Identify the image tag pushed to GHCR (from CI output or by listing package versions in GHCR).
+2. Edit `k8s/deployment.yaml` and replace the image tag `latest` with that real GHCR tag.
+3. Apply the manifest manually:
+   ```bash
+   kubectl apply -f k8s/deployment.yaml
+   ```
+4. Verify rollout:
+   ```bash
+   kubectl rollout status deployment/cmapss-rul-api
+   ```
+
+> This manual CD process is an explicit limitation of the current demo structure, not the recommended production approach.
 
 ---
 
