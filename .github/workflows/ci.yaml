@@ -12,7 +12,6 @@ permissions:
   
 jobs:
   build:
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -27,9 +26,9 @@ jobs:
           chmod +x ./cicd/build.sh
           ./cicd/build.sh
 
-  build-and-push:
+  push:
     needs: build
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
